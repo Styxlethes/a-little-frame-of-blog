@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block body %}
+	{% block content %}
+	<table>
+		<tr valign='top'>
+			#可以更改用户头像大小
+			<td><img src="{{ user.avatar(128) }}"></td>
+			<td><h1>用户:{{ user.username }} </h1></td>
+		</tr>
+	</table>
+		</hr>
+		{% for post in posts %}
+			{% include '_post.html' %}
+		{% endfor %}
+	{% endblock %}			
+{% endblock %}

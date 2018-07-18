@@ -1,0 +1,12 @@
+s{% extends "base.html" %}
+{% block body %}
+{% block content %}
+<body>
+	<h1 >this is Home</h1>
+	<h1>欢迎回来，{{ current_user.username }}!</h1>
+	{% for post in posts %}
+		<div><p>{{ posts.author.username }}说:<p>{{ posts.body }}</p></p></div>
+	{% endfor %}	
+</body>
+{% endblock %}
+{% endblock %}
