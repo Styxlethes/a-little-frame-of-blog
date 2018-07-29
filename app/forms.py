@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField
-from wtforms.validators import DataRequired, Email, EqualTo
+from wtforms.validators import DataRequired, Email, EqualTo, ValidationError
 from app.models import User
 
 
@@ -20,15 +20,15 @@ class RegistrationForm(FlaskForm):
     password2 = PasswordField('repeat password', validators=[
                               DataRequired(), EqualTo('password')])
     submit = SubmitField('registration')
-    
-	# 校验用户名是否重复
+
+    # 校验用户名是否重复
     def validate_username(self, username):
         user = User.query.filter_by(username=username.data).first()
-        if user is not None:
+        if user:
             raise ValidationError('用户名重复，请重新输入')
 
     # 校验邮箱是否重复
     def validate_email(self, email):
         user = User.query.filter_by(email=email.data).first()
-        if user is not None:
-            raise VlidationError('邮箱重复，请重新输入')
+        if user:
+            raise ValidationError('邮箱重复，请重新输入')

@@ -60,14 +60,19 @@ def logout():
 @app.route('/register', methods=['POST', 'GET'])
 def register():
     # 判断用户是否已经注册
+    print('---------1------------')
     if current_user.is_authenticated:
         return redirect(url_for('index'))
     from app.forms import RegistrationForm
     form = RegistrationForm()
+    print('---------2------------')
     if form.validate_on_submit():
+        print('--------3-------------')
+        print('---------4------------')
         try:
-            user = User(username=form.username.data, email=form.email.data)
-            user.set_password(form.password.data)
+            user = User(username='nike', email='nike@qq.com')
+            # user = User(username=form.username.data, email=form.email.data)
+            user.set_password('123456')
             db.session.add(user)
             db.session.commit()
             print('OK')
@@ -76,6 +81,7 @@ def register():
         except Exception as e:
             print(e)
             flash('创建用户失败')
+    print('-------5-----------')
     return render_template('register.html', title='register', form=form)
 
 

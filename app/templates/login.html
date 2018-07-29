@@ -1,8 +1,7 @@
 {% extends "base.html" %}
 
-{% block body %}
 {% block content %}
-	<h1>login</h1>
+	<h1>登录</h1>
 	<p>还没注册？ <a href="{{ url_for('register') }}">点击注册</a></p>
 	<form action="" method="post">
 		{# 用来实现配置中激活的csrf保护 #}
@@ -26,5 +25,4 @@
 		</p>
 		<p>{{ form.submit() }}</p>
 	</form>
-{% endblock %}
 {% endblock %}

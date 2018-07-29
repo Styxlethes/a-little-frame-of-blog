@@ -3,8 +3,29 @@
 <html>
 <head>
 	<title>{{ title }}</title>
+	<style type="text/css" media="screen">
+		a{
+			font-size: 100;
+			color: green;
+			font-family: 微软雅黑;
+			font-weight: 100;
+		}
+		p{
+			font-size: 23;
+			color: red;
+			font-family:sans-serif;
+			text-align: center;
+		}
+		.class1{
+			/*background-color: yellow;*/
+			background-image:url(static/background2.jpg) ;
+			background-repeat: no-repeat;
+			background-size: cover;
+			font-size: 128;
+		}
+	</style>
 </head>
-<body>
+<body class="class1">
 	<div >导航:
 		<a href="{{ url_for('index') }}">首页</a>
 		{% if current_user.is_anonymous %}
@@ -17,13 +38,12 @@
 	</div>
 	</hr>
 	<div>
-	{% for message in get_flashed_messages() %}
-		<div >
-		{{ message }}
+	{% for messages in get_flashed_messages() %}
+		<div>
+		{{ messages[1] }}
 		</div>	
 	{% endfor %}
 	</div>
 {% block content %}{% endblock %}
 </body>
 </html>
-

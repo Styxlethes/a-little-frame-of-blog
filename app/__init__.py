@@ -3,36 +3,35 @@ from flask_bootstrap import Bootstrap
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
-#导入上级目录中的文件
+# 导入上级目录中的文件
 import sys
 sys.path.append('..')
-#导入配制信息
+# 导入配制信息
 from config import Config
 # from livereload import Server #livereload模块实现自动刷新
 # from functools import reduce
-app=Flask(__name__)
-#添加配制信息
+app = Flask(__name__)
+# 添加配制信息
 app.config.from_object(Config)
-bootstrap=Bootstrap(app)
-db=SQLAlchemy(app)
+bootstrap = Bootstrap(app)
+db = SQLAlchemy(app)
 
-login=LoginManager(app)	
+login = LoginManager(app)
 login.init_app(app)
-#加入登录限制功能
-login.login_view='login'
-from app import route,models
-#绑定app与数据库，以便进行操作
-migrate=Migrate(app,db)
+# 加入登录限制功能
+login.login_view = 'login'
+from app import route, models
+# 绑定app与数据库，以便进行操作
+migrate = Migrate(app, db)
 
 
-
-#自定义jinja2的过滤器
+# 自定义jinja2的过滤器
 # @app.template_filter('md')
 # def markdown_to_txt(txt):
 # 	from markdown import markdown
 # 	return markdown(txt)
 
-#自定义jinja2函数
+# 自定义jinja2函数
 # def read_md(filename):
 # 	with open(filename) as md_file:
 # 		content=reduce(lambda x,y:x+y,md_file.readlines())
@@ -41,7 +40,6 @@ migrate=Migrate(app,db)
 # @app.context_processor
 # def inject_methods():
 # 	return dict(read_md=read_md)
-
 
 
 # if __name__ == '__main__':

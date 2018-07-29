@@ -1,9 +1,8 @@
 {% extends 'base.html' %}
-{% block body %}
 {% block content %}
 	<h1>注册</h1>
 	<form action="" method="post">
-		<!-- {{ form.hidden_tag }} -->
+		{{ form.hidden_tag() }}
 		<p>
 			{{ form.username.label}}</br>
 			{{ form.username(size=32)}}<br>
@@ -34,5 +33,4 @@
 		</p>
 		<p>{{ form.submit() }}</p>
 	</form>
-{% endblock %}
 {% endblock %}
