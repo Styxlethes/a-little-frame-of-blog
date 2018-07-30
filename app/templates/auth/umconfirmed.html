@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+	<div>
+	<h1>
+	{% if current_user.is_authenticated %}
+		欢迎回来,{{ current_user.nickname}}
+	{% endif %}
+	</h1>
+	<p>
+		现在您并未确认您的账户，在您确认账户前，部分功能与网页将无法使用与访问。
+	</p>
+	<h3>
+		需要发送新的确认邮件？<a href="{{ url_for('main.resend_confirmation') }}">点击此处发送新的确认邮件</a>
+	</h3>
+	</div>
+{% endblock %}
