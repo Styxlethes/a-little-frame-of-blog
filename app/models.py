@@ -4,10 +4,12 @@ db = SQLAlchemy()
 
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import UserMixin  # 用于管理用户类
+from flask_login import UserMixin, AnonymousUserMixin  # 用于管理用户类
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app
 from hashlib import md5
+from markdown import markdown
+import bleach
 
 
 from app.__init__ import login_manager
@@ -27,9 +29,20 @@ class User(UserMixin, db.Model):
     posts = db.relationship('Post', backref='author', lazy='dynamic')
     about_me = db.Column(db.String(140))
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
+    name = db.Column(db.String(64))
 
     password_hash = db.Column(db.String(256))
     confirmed = db.Column(db.Boolean, default=False)
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if self.role is None:
+            if self.email == current_app.config['BLOG_ADMIN']:
+                self.role = Role.query.filter_by(permissions=0xff).first()
+            if self.role is None:
+                self.role = Role.query.filter_by(default=True).first()
+            # pass
 
     def __repr__(self):
         return '<用户名:%s>' % self.username
@@ -39,7 +52,7 @@ class User(UserMixin, db.Model):
         return self._password
 
     @password.setter
-    def set_password(self, raw):
+    def password(self, raw):
         self.password_hash = generate_password_hash(raw)
 
     def check_password(self, password):
@@ -75,6 +88,81 @@ class User(UserMixin, db.Model):
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()
         return 'http://www.gravatar.com/acvatar/{}?d=indention'.format(digest, size)
 
+    @staticmethod
+    def generate_fake(count=100):
+        from sqlalchemy.exc import IntegrityError
+        from random import seed
+        import forgery_py
+
+        seed()
+        for i in range(count):
+            u = User(email=forgery_py.internet.email_address(),
+                     nickname=forgery_py.internet.user_name(),
+                     password=forgery_py.lorem_ipsum.word(),
+                     confirmed=True,
+                     about_me=forgery_py.lorem_ipsum.sentence())
+            db.session.add(u)
+            try:
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+
+    def can(self, permissions):
+        return self.role is not None and \
+            (self.role.permissions & permissions) == permissions
+
+    def is_administrator(self):
+        return self.can(Permission.ADMINISTER)
+
+
+class AnonymousUser(AnonymousUserMixin):
+    def can(self, permissions):
+        return False
+
+    def is_administrator(self):
+        return False
+
+
+login_manager.anonymous_user = AnonymousUser
+
+
+class Role(db.Model):
+    __tablename__ = 'roles'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), unique=True)
+    default = db.Column(db.Integer)
+    permissions = db.Column(db.Integer)
+    users = db.relationship('User', backref='role', lazy='dynamic')
+
+    @staticmethod
+    def insert_roles():
+        roles = {
+            'User': (Permission.FOLLOW |
+                     Permission.COMMENT |
+                     Permission.WRITE_ARTICLES, True),
+            'Moderater': (Permission.FOLLOW |
+                          Permission.COMMENT |
+                          Permission.WRITE_ARTICLES |
+                          Permission.MODERATE_COMMENTS, False),
+            'Administrator': (0xff, False)
+        }
+        for r in roles:
+            role = Role.query.filter_by(name=r).first()
+            if role is None:
+                role = Role(name=r)
+            role.permissions = role[r][0]
+            role.default = role[r][1]
+            db.session.add(role)
+        db.session.commit()
+
+
+class Permission:
+    FOLLOW = 0x01
+    COMMENT = 0x02
+    WRITE_ARTICLES = 0x04
+    MODERATE_COMMENTS = 0x08
+    ADMINISTER = 0x80
+
 
 class Post(db.Model):
     __tablename__ = 'post'
@@ -83,9 +171,37 @@ class Post(db.Model):
     body = db.Column(db.String(64))
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    body_html = db.Column(db.Text)
 
     def __repr__(self):
         return '<Post %s>' % self.body
+
+    @staticmethod
+    def generate_fake(count=100):
+        from random import seed, randint
+        import forgery_py
+
+        seed()
+        user_count = User.query.count()
+        for i in range(count):
+            u = User.query.offset(randint(0, user_count-1)).first()
+            p = Post(body=forgery_py.lorem_ipsum.sentence(randint(1, 3)),
+                     timestamp=forgery_py.date.date(True),
+                     user_id=u)
+            db.session.add(p)
+            db.session.commit()
+
+    @staticmethod
+    def on_change_body(target, value, oldvalue, inititor):
+        allowed_tag = ['a', 'abbr', 'acronym', 'b', 'blockquote'
+                       'code', 'em', 'i', 'pre', 'strong', 'ul',
+                       'h1', 'h2', 'h3', 'p']
+        target.body_html = bleach.linkifier(bleach.clean(
+            markdown(value, output_format='html'),
+            tags=allowed_tag, strip=True))
+
+
+db.event.listen(Post.body, 'set', Post.on_change_body)
 
 
 @login_manager.user_loader

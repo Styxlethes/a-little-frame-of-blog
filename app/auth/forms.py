@@ -17,7 +17,7 @@ class LoginForm(FlaskForm):
 
 
 class RegistrationForm(FlaskForm):
-    username = StringField('username', validators=[DataRequired()])
+    nickname = StringField('nickname', validators=[DataRequired()])
     email = StringField('email', validators=[DataRequired(), Email()])
     password = PasswordField('password', validators=[DataRequired()])
     password2 = PasswordField('repeat password', validators=[
@@ -25,8 +25,8 @@ class RegistrationForm(FlaskForm):
     submit = SubmitField('registration')
 
     # 校验用户名是否重复
-    def validate_username(self, username):
-        user = User.query.filter_by(username=username.data).first()
+    def validate_username(self, nickname):
+        user = User.query.filter_by(nickname=nickname.data).first()
         if user:
             raise ValidationError('用户名重复，请重新输入')
 

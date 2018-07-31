@@ -3,10 +3,11 @@ from app.main.__init__ import main
 
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import current_user
-from flask_login import logout_user, login_user
+from flask_login import logout_user, login_user, login_required
 
 from app.models import User, db
-from ..email import send_email
+
+from app.email import send_email
 
 
 @auth.route('/register', methods=['POST', 'GET'])
@@ -17,14 +18,15 @@ def register():
     if form.validate():
         try:
             # user = User(nickname='nike', email='nike@qq.com')
-            user = User(
+            new_user = User(
                 nickname=form.nickname.data, email=form.email.data,
                 password=form.password.data)
-            db.session.add(user)
+            db.session.add(new_user)
             db.session.commit()
-            token = user.generate_confirmation_token()
-            send_email(user.email, '确认账户', 'auth/email/comfirm',
-                       user=user, token=token)
+            token = new_user.generate_confirmation_token()
+            send_email(new_user.email, '确认账户', 'auth/email/comfirm',
+                       user=new_user, token=token)
+            print('-----------3---------')
             flash('注册邮件已发送至您的邮箱，请查收')
             return redirect(url_for('auth.login'))
         except Exception as e:
@@ -73,6 +75,18 @@ def logout():
     return redirect(url_for('main.index'))
 
 
+@auth.route('/confirm/<token>')
+@login_required
+def confirm(token):
+    if current_user.confirmed:
+        return redirect(url_for('main.index'))
+    if current_user.confirm(token):
+        flash('您已经确认了账户')
+    else:
+        flash('确认账号链接出错或者链接超时')
+    return redirect(url_for('main.index'))
+
+
 @auth.before_app_request
 def before_request():
     if current_user.is_authenticated and not current_user.comfirmed:
@@ -84,3 +98,30 @@ def unconfirmed():
     if current_user.is_anonymous or current_user.confirmed:
         return redirect(url_for(main.index))
     return render_template('auth/unconfirmed.html')
+
+
+@auth.route('/confirm')
+@login_required
+def resend_confirmation():
+    token = current_user.generate_confirmation_token()
+    send_email(current_user.email, '确认您的账户',
+               'email/comfirm', user=current_user, token=token)
+    flash('新的确认邮件已发送，请查收')
+    return redirect(url_for('main.index'))
+
+
+@login_required
+@auth.route('/<username>/changepassword')
+def change_password(self):
+    pass
+
+
+@login_required
+@auth.route('/<username>/changeemail')
+def changeemail(self):
+    pass
+
+
+@auth.route('/forgetpassword')
+def forgetpassword(self):
+    pass

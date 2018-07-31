@@ -1,5 +1,5 @@
 <p><strong>确认邮件</strong></p>
-<p><h2>{{ user.email }}刚刚在ToDo上注册了账号，请点击一下链接完成注册</h2></p>
-<p>点击<a href="{{ url_for('main.confirm',token=token,_external=True) }}">这里</a></p>
+<p><h2>{{ user.email }}刚刚在ToDo上注册了账号，请点击链接完成注册</h2></p>
+<p>点击<a href="{{ url_for('auth.confirm',token=token,_external=True) }}">这里</a></p>
 <p>MYBLOG团队至上</p>
 <p>注意，此邮件不需回复</p>

@@ -1,25 +1,37 @@
 {% extends "base.html" %}
-
-{% block content %}
-<body>
+{% import 'bootstrap/wtf.html' as wtf %}
+<!-- { {% import '_macros.html' as macros %} } -->
+{% block title %}主页{% endblock %}
+{% block page_content %}
+ <body>
 	<h1 >this is Home</h1>
 	<h1>欢迎回来，{{ current_user.nickname }}!</h1>
 	<form method="post">
-		{{ form.hidden_tag() }}
-		<p>
-			{{ form.title.label}}</br>
-			{{ form.title() }}
-		</p>
-		<p>
-			{{ form.body.label}}</br>
-			{{ form.body() }}
-		</p>
-		<p>
-			{{ form.submit()}}
-		</p>
+		{{ wtf.quick_form(form) }}
 	</form>
 	{% for post in posts %}
 		<div><p>{{ post.author.nickname }}说:<p>{{ post.body }}</p></p></div>
-	{% endfor %}	
+	{% endfor %} 
+	{ { include '_post.html'} }
+	<!-- <div class="pagination">
+		{{ macros.pagination_widget(pagination,'.index') }}
+	</div> -->	 
 </body>
+<div class="page-header">
+	<h1>主页</h1>
+</div>
+<div class="col-md-5">
+	{{	wtf.quick_form(form) }}	
+</div>
+<br>
+<!-- <div class="col-md-6">
+	{{ pagedown.include_pagedown() }}
+</div> -->
+
+{% include '_post.html' %}
+{% endblock %}
+
+{% block scripts %}
+	{{ super() }}
+	{{ pagedown.include_pagedown()}}
 {% endblock %}
