@@ -111,17 +111,75 @@ def resend_confirmation():
 
 
 @login_required
-@auth.route('/<username>/changepassword')
+@auth.route('/<username>/changepassword', methods=['POST', 'GET'])
 def change_password(self):
-    pass
+    from . import ChangePasswordForm
+    form = ChangePasswordForm()
+    if form.validate():
+        if current_user.verify_password(form.newpassword.data):
+            current_user.password = form.newpassword.data
+            db.session.add(current_user)
+            db.session.commit()
+            return redirect(url_for('main.index'))
+        else:
+            flash('原密码输入不正确')
+    return render_template('auth/changepassword.html', form=form)
 
 
 @login_required
-@auth.route('/<username>/changeemail')
-def changeemail(self):
-    pass
+@auth.route('/change_email_request', methods=['POST', 'GET'])
+def change_email_request():
+    from . import ChangeEmailRequestForm
+    form = ChangeEmailRequestForm()
+    if form.validate():
+        if current_user.verify_password(form.password.data):
+            new_email = form.newemail.data
+            token = current_user.generate_email_change_token(new_email)
+            send_email(new_email, '确认您的新邮箱', 'auth/email/change_email',
+                       user=current_user, token=token)
+            flash('确认新邮箱的邮件已发送至您的新邮箱，请确认')
+            return redirect(url_for('mian.index'))
+        return render_template('auth/change_email.html', form=form)
 
 
-@auth.route('/forgetpassword')
-def forgetpassword(self):
-    pass
+@login_required
+@auth.route('/change_email/<token>')
+def changeemail(token):
+    if current_user.change_email(token):
+        db.session.commit()
+        flash('已更新您的密码')
+    else:
+        flash('无效的请求')
+    return redirect(url_for('main.index'))
+
+
+@auth.route('/forgetpassword', methods=['POST', 'GET'])
+def forgetpasswordrequest():
+    if not current_user.is_anonymous:
+        return redirect(url_for('main.index'))
+    from . import ForgetPasswordRequest
+    form = ForgetPasswordRequest()
+    if form.validate():
+        user = User.query.filter_by(email=form.email.data)
+        if user:
+            token = user.generate_reset_token()
+            send_email(user.email, '重置您的密码',
+                       'auth/email/reset_password', user=user, token=token)
+        flash('重置密码邮件已发送至您的邮箱')
+        return redirect(url_for('auth.login'))
+    return render_template('auth/reset_password.html', form=form)
+
+
+@auth.route('/resetpassword/<token>', methods=['POST', 'GET'])
+def resetpassword(token):
+    if not current_user.is_anonymous:
+        return redirect(url_for('main.index'))
+    from . import ForgetPasswordForm
+    form = ForgetPasswordForm()
+    if form.validate():
+        if User.reset_password(token, form.newpassword.data):
+            flash('成功修改密码')
+            return redirect(url_for('auth.login'))
+        else:
+            return redirect(url_for('main.index'))
+    return render_template('reset_password.html', form=form)

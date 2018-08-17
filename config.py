@@ -24,3 +24,28 @@ class Config:
     MAIL_USERNAME = '642698748@qq.com'
     MAIL_PASSWORD = 'khsdmeyhivmibbcg'
     MAIL_SENDER = '642698748@qq.com'
+
+    DEBUG = True
+
+    @classmethod
+    def init_app(cls, app):
+        Config.init_app(app)
+
+        # 将错误通过电子邮件发送给管理员
+        import logging
+        from logging.handlers import SMTPHandler
+        credentials = None
+        secure = None
+        if getattr(cls, 'MAIL_USERNAME', None) is not None:
+            credentials = (cls.MAIL_USERNAME, cls.MAIL_PASSWORD)
+            if getattr(cls, 'MAIL_USE_TLS', None):
+                secure = True
+            mail_handler = SMTPHandler(
+                mailhost=(cls.MAIL_SERVER, cls.MAIL_PORT),
+                fromaddr=cls.MAIL_SENDER,
+                toaddrs=[cls.BLOG_ADMIN],
+                subject='服务器出错',
+                credentials=credentials,
+                secure=secure)
+            mail_handler.setLevel(logging.ERROR)
+            app.logger.addHandler(mail_handler)

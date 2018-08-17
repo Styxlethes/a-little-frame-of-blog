@@ -1,0 +1,5 @@
+<p><strong>确认邮件</strong></p>
+<p><h2>{{ user.email }}刚刚在blog上更改了邮箱地址，请点击链接完成更改</h2></p>
+<p>点击<a href="{{ url_for('auth.confirm',token=token,_external=True) }}">这里</a></p>
+<p>MYBLOG团队至上</p>
+<p>注意，此邮件不需回复</p>

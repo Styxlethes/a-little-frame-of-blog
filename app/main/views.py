@@ -1,6 +1,6 @@
 from . import main
 
-from flask import render_template, flash, redirect, url_for, request
+from flask import render_template, flash, redirect, url_for
 from flask_login import login_required, current_user
 from app.models import User, Post
 from ..email import send_email

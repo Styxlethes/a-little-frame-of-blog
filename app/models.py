@@ -35,6 +35,8 @@ class User(UserMixin, db.Model):
     confirmed = db.Column(db.Boolean, default=False)
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
 
+    comments = db.relationship('Comment', backref='author', lazy='dynamic')
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         if self.role is None:
@@ -75,12 +77,55 @@ class User(UserMixin, db.Model):
     def confirm(self, token):
         s = Serializer(current_app.config['SECRET_KEY'])
         try:
-            data = s.loads(token)
+            data = s.loads(token.encode('utf-8'))
         except:
             return False
         if data.get('confirm') != self.id:
             return False
         self.confirmed = True
+        db.session.commit()
+        return True
+
+    def generate_reset_token(self, expires_in=3600):
+        s = Serializer(current_app.config['SECRET_KEY'], expires_in)
+        return s.dumps({'reset': self.id})
+
+    @staticmethod
+    def reset_password(token, new_password):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.load(token)
+        except:
+            return False
+        user = User.query.get(data.get('reset'))
+        if user is None:
+            return False
+        user.password = new_password
+        db.session.add(user)
+        db.session.commit()
+        return True
+
+    def generate_change_email_token(self, new_email, expires_in=3600):
+        s = Serializer(current_app.config['SECRET_KEY'], expires_in)
+        return s.dumps(
+            {'change_email': self.id, 'new_email': new_email})
+
+    def change_email(self, token):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token.encode('utf-8'))
+        except:
+            return False
+        if data.get('change_email') != self.id:
+            return False
+        new_email = data.get('new_email')
+        if new_email is None:
+            return False
+        if self.query.filter_by(email=new_email).first() is not None:
+            return False
+        self.email = new_email
+        self.avatar_hash = self.gravatar_hash()
+        db.session.add(self)
         db.session.commit()
         return True
 
@@ -113,6 +158,9 @@ class User(UserMixin, db.Model):
 
     def is_administrator(self):
         return self.can(Permission.ADMINISTER)
+
+    def verify_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 
 class AnonymousUser(AnonymousUserMixin):
@@ -173,6 +221,8 @@ class Post(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     body_html = db.Column(db.Text)
 
+    comments = db.relationship('Comment', backref='post', lazy='dynamic')
+
     def __repr__(self):
         return '<Post %s>' % self.body
 
@@ -207,3 +257,23 @@ db.event.listen(Post.body, 'set', Post.on_change_body)
 @login_manager.user_loader
 def load_user(id):
     return User.query.get(int(id))
+
+
+class Comment(db.Model):
+    __tablename__ = 'comment'
+    id = db.Column(db.Integer(), primary_key=True)
+    body = db.Column(db.Text)
+    body_html = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    disable = db.Column(db.Boolean)
+
+    author_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id'))
+
+    @staticmethod
+    def on_change_body(target, value, oldvalue, inititor):
+        allowed_tag = ['a', 'abbr', 'acronym', 'b'
+                       'code', 'em', 'i', 'strong']
+        target.body_html = bleach.linkifier(bleach.clean(
+            markdown(value, output_format='html'),
+            tags=allowed_tag, strip=True))
